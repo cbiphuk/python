@@ -5,7 +5,7 @@ import httplib
 import datetime
 
 #AWS namespace
-namespace = 'NewsroomProd'
+namespace = ''
 enable_monitoring = True
 
 #nginx config
