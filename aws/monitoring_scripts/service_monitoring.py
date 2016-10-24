@@ -25,7 +25,7 @@ mysql_system_name = 'mysql'
 
 #webservice checker
 webservice_name = 'NewsroomWebService'
-webservice_url = 'newsroom-beta.agorafy.com'
+webservice_url = 'example.com'
 
 def WebserviceChecker(service_name, url):
   """ Checks webservice for current URL"""
