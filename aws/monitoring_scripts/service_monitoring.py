@@ -1,9 +1,12 @@
-#!/usr/bin/python2.7
+#!/usr/bin/env python
 
-
+from boto.ec2.cloudwatch import CloudWatchConnection
 import os.path
 import httplib
 import datetime
+import configparser
+
+config_file_name = 'service_monitoring.conf'
 
 #AWS namespace
 namespace = ''
@@ -32,7 +35,6 @@ webservice_url = 'example.com'
 def WebserviceChecker(service_name, url):
   """ Checks webservice for current URL"""
 
-  #date = '{:%Y-%m-%dT%H:%M:%S}'.format(datetime.datetime.now())
 
   conn = httplib.HTTPConnection(webservice_url, 80)
   try:
@@ -40,41 +42,35 @@ def WebserviceChecker(service_name, url):
   except:
     log_message = 'is not responding'
     PushLog(service_name, log_message)
-    #print date + ': '+ webservice_name + ' is not responding'
     return (service_name, False)
   else:
     r1 = conn.getresponse()
     log_message = 'is alive ' + str(r1.status) + ' ' + r1.reason
     PushLog(service_name, log_message)
-    #print date + ': ' + service_name + ' is alive ' + str(r1.status), r1.reason
     return (service_name, True)
 
 def IsAlive(pid_file, service_name, system_name):
-  """ This function checks of process status and tries to restart it if the process does not launched"""
+  """ This function checks process status and tries to restart it if the
+  process is not launched"""
 
-  #date = '{:%Y-%m-%dT%H:%M:%S}'.format(datetime.datetime.now())
   if os.path.isfile(pid_file):
-    log_message = 'pis is over there'
+    log_message = 'pid is over there'
     PushLog(service_name, log_message)
-    #print date + ': ' + service_name + " pid is over there"
     the_file = open(pid_file, 'r')
     pid = the_file.readline()
     try:
       os.kill(int(pid), False)
       log_message = 'process is running'
       PushLog(service_name, log_message)
-      #print date + ': ' + service_name + " process is running"
       return (service_name, True)
     except:
       log_message = 'pid file exist but process is dead'
       PushLog(service_name, log_message)
-      #print date + ': ' + service_name + " pid file exist but process is dead"
       serviceRestart(system_name)
       return (service_name, False)
   else:
     log_message = 'is DEAD!'
     PushLog(service_name, log_message)
-    #print date + ': ' + service_name + " is DEAD!"
     serviceRestart(system_name)
     return (service_name, False)
 
@@ -85,45 +81,68 @@ def AWSSendStatus(service):
   
   status = service[1]
   service_name = service[0]
-  #date = '{:%Y-%m-%dT%H:%M:%S}'.format(datetime.datetime.now())
 
   if status:
     value = 1
     command = '/usr/local/bin/aws cloudwatch put-metric-data --metric-name ' \
     + service_name + ' --namespace ' + namespace + ' --value ' + str(value) + \
     ' --timestamp '+ GetDate()
-    #print command
   else:
     value = 0
     command = '/usr/local/bin/aws cloudwatch put-metric-data --metric-name ' \
     + service_name + ' --namespace ' + namespace + ' --value ' + str(value) + \
     ' --timestamp '+ GetDate()
-    #print command
   os.system(command)
 
 def serviceRestart(service_name):
   """Restarts current service"""
 
-  #date = '{:%Y-%m-%dT%H:%M:%S}'.format(datetime.datetime.now())
   command = 'sudo service ' + service_name + ' restart'
   log_message = 'restarting'
   PushLog(service_name, log_message)
-  #print GetDate() + ': ' + service_name + ' restarting'
   os.system(command)
 
 def PushLog(service_name, message):
-  #date = '{:%Y-%m-%dT%H:%M:%S}'.format(datetime.datetime.now())
   print GetDate() + ': ' + service_name + ' ' + message
 
 def GetDate():
   date = '{:%Y-%m-%dT%H:%M:%S}'.format(datetime.datetime.now())
   return date
 
+def AWSSendStatusSDK(service):
+  """Send status to AWS using SDK
+  pip install boto"""
+  status = service[1]
+  service_name = service[0]
+
+  cwc = CloudWatchConnection(aws_access_key_id, \
+      aws_secret_access_key)
+  if status:
+    value = 1
+  else:
+    value = 0
+
+  cwc.put_metric_data(namespace, name = service_name, value = str(value))
+
+#def SetConfigValues(config_file_name):
+#  parameters = configparser.ConfigParser(config_file_name)
+#  namespace = parameters["namespace"]
+#  #print namespace
 
 
 #MAIN
 if __name__ == '__main__':
-  AWSSendStatus(IsAlive(nginx_pid, nginx_name, nginx_system_name))
-  AWSSendStatus(IsAlive(php_fpm_pid, php_fpm_name, php_fpm_system_name))
-  AWSSendStatus(IsAlive(mysql_pid, mysql_service_name, mysql_system_name))
-  AWSSendStatus(WebserviceChecker(webservice_name, webservice_url))
+  #iSetConfigValues(config_file_name)
+  parameters = configparser.ConfigParser(config_file_name)
+  namespace = parameters["namespace"]
+  aws_access_key_id = parameters["aws_access_keys"][0]
+  aws_secret_access_key = parameters["aws_access_keys"][1]
+  #print aws_access_key_id, aws_secret_access_key
+  #exit(0)
+
+  AWSSendStatusSDK(IsAlive(nginx_pid, nginx_name, nginx_system_name))
+  AWSSendStatusSDK(IsAlive(php_fpm_pid, php_fpm_name, php_fpm_system_name))
+  AWSSendStatusSDK(IsAlive(mysql_pid, mysql_service_name, mysql_system_name))
+  AWSSendStatusSDK(WebserviceChecker(webservice_name, webservice_url))
+  #print configparser.ConfigParser(config_file_name)
+  #print namespace

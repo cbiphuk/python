@@ -1,0 +1,6 @@
+
+#AWS ACCESS KEYS
+aws.access.key=
+aws.access.secret.key=
+#CLOUDWATCH CUSTOM NAMESPACE
+namespace=
