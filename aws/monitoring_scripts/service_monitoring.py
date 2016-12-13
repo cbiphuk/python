@@ -8,35 +8,14 @@ import configparser
 
 config_file_name = 'service_monitoring.conf'
 
-#AWS namespace
-namespace = ''
 #TODO: add enable_monitoring feature
 enable_monitoring = True
-
-#nginx config
-nginx_pid = '/var/run/nginx.pid'
-nginx_name = 'NginxService'
-nginx_system_name = 'nginx'
-
-#php config
-php_fpm_pid = '/var/run/php/php7.0-fpm.pid'
-php_fpm_name = 'PhpFpmService'
-php_fpm_system_name = 'php7.0-fpm'
-
-#mysql config
-mysql_pid = '/var/run/mysqld/mysqld.pid'
-mysql_service_name = 'MysqlService'
-mysql_system_name = 'mysql'
-
-#webservice checker
-webservice_name = 'WebService'
-webservice_url = 'example.com'
 
 def WebserviceChecker(service_name, url):
   """ Checks webservice for current URL"""
 
 
-  conn = httplib.HTTPConnection(webservice_url, 80)
+  conn = httplib.HTTPConnection(url, 80, timeout = 10)
   try:
     conn.request("HEAD", "/")
   except:
@@ -124,11 +103,23 @@ def AWSSendStatusSDK(service):
 
   cwc.put_metric_data(namespace, name = service_name, value = str(value))
 
-#def SetConfigValues(config_file_name):
-#  parameters = configparser.ConfigParser(config_file_name)
-#  namespace = parameters["namespace"]
-#  #print namespace
+def ServiceSendStatus(parameters):
+  services = parameters["services"]
+  #print services 
+  for keys, value in services.items():
+    pid = value[0]
+    name = value[1]
+    system_name = value[2]
 
+    AWSSendStatusSDK(IsAlive(pid, name, system_name))
+
+def WebServiceSendStatus(parameters):
+  services = parameters["webservices"]
+  #print services 
+  for keys, value in services.items():
+    webservice_name = value[0]
+    webservice_url = value[1]
+    AWSSendStatusSDK(WebserviceChecker(webservice_name, webservice_url))
 
 #MAIN
 if __name__ == '__main__':
@@ -139,10 +130,5 @@ if __name__ == '__main__':
   aws_secret_access_key = parameters["aws_access_keys"][1]
   #print aws_access_key_id, aws_secret_access_key
   #exit(0)
-
-  AWSSendStatusSDK(IsAlive(nginx_pid, nginx_name, nginx_system_name))
-  AWSSendStatusSDK(IsAlive(php_fpm_pid, php_fpm_name, php_fpm_system_name))
-  AWSSendStatusSDK(IsAlive(mysql_pid, mysql_service_name, mysql_system_name))
-  AWSSendStatusSDK(WebserviceChecker(webservice_name, webservice_url))
-  #print configparser.ConfigParser(config_file_name)
-  #print namespace
+  ServiceSendStatus(parameters)
+  WebServiceSendStatus(parameters)
