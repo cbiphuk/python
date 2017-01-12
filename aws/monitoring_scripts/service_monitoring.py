@@ -11,6 +11,7 @@ config_file_name = 'service_monitoring.conf'
 #TODO: add enable_monitoring feature
 enable_monitoring = True
 
+
 def WebserviceChecker(service_name, url):
   """ Checks webservice for current URL"""
 
@@ -105,7 +106,6 @@ def AWSSendStatusSDK(service):
 
 def ServiceSendStatus(parameters):
   services = parameters["services"]
-  #print services 
   for keys, value in services.items():
     pid = value[0]
     name = value[1]
@@ -115,7 +115,6 @@ def ServiceSendStatus(parameters):
 
 def WebServiceSendStatus(parameters):
   services = parameters["webservices"]
-  #print services 
   for keys, value in services.items():
     webservice_name = value[0]
     webservice_url = value[1]
@@ -123,12 +122,9 @@ def WebServiceSendStatus(parameters):
 
 #MAIN
 if __name__ == '__main__':
-  #iSetConfigValues(config_file_name)
   parameters = configparser.ConfigParser(config_file_name)
   namespace = parameters["namespace"]
   aws_access_key_id = parameters["aws_access_keys"][0]
   aws_secret_access_key = parameters["aws_access_keys"][1]
-  #print aws_access_key_id, aws_secret_access_key
-  #exit(0)
   ServiceSendStatus(parameters)
   WebServiceSendStatus(parameters)
